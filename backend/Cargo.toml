@@ -1,0 +1,11 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+chrono = { version = "0.4.24", features = ["serde"] }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+serde = { version = "1.0.159", features = ["derive"] }
+uuid = { version = "1.3.0", features = ["v4"] }
