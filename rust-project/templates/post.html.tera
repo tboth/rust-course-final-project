@@ -1,0 +1,15 @@
+{% extends "base" %}
+{% block title %}Post{% endblock title %}
+{% block content %}
+<div class="content mx-auto max-w-xl pt-5 text-white px-4">
+    <h2 class="mb-4 text-4xl font-thin">Test Post</h2>
+    <img class="mx-auto mb-2 rounded-md" src="https://picsum.photos/400/300" alt="" srcset="" />
+    <p class="mb-2">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!</p>
+    <p class="mb-2">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!</p>
+    <p class="mb-2">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!</p>
+    <p class="mb-2">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!</p>
+    <p class="mb-2">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!</p>
+
+    <p>Author: testUser</p>
+</div>
+{% endblock content %}

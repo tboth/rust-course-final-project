@@ -1,0 +1,16 @@
+{% extends "base" %}
+{% block title %}Login{% endblock title %}
+{% block content %}
+<div class="content mx-auto mt-4 max-w-xs rounded-lg bg-slate-700 px-4 pb-5 pt-5 text-white">
+    <h2 class="mb-3 text-3xl font-thin">Login</h2>
+    <form action="" class="flex flex-col">
+      <label>Name: </label>
+      <input type="text" placeholder="Name" class="text-black" />
+      <label>Password:</label>
+      <input type="password" name="" id="" placeholder="Password" class="text-black" />
+      <input type="submit" value="Login" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
+    </form>
+    <p class="mt-5">Do not have accound yet?</p>
+    <a href="#" class="flex py-1 w-28 items-center justify-center rounded-md bg-white text-center text-black">Register</a>
+  </div>
+{% endblock content %}

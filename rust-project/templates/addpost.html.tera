@@ -1,0 +1,16 @@
+{% extends "base" %}
+{% block title %}Add Post{% endblock title %}
+{% block content %}
+<div class="content mx-auto max-w-xl pt-5 text-white px-4">
+    <h2 class="mb-3 text-3xl font-thin">Add blog post</h2>
+    <form action="" class="flex flex-col">
+      <label>Title: </label>
+      <input type="text" placeholder="Title" class="text-black" />
+      <label>Image:</label>
+      <input type="file" name="" id="" accept=".png,.jpg,.jpeg,.gif" />
+      <label>Content: </label>
+      <textarea name="content" id="" cols="30" rows="10" placeholder="Content" class="text-black"></textarea>
+      <input type="submit" value="Publish" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
+    </form>
+  </div>
+{% endblock content %}

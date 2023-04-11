@@ -1,0 +1,23 @@
+{% extends "base" %}
+{% block title %}Index{% endblock title %}
+{% block content %}
+<div class="content mx-auto mt-8 flex max-w-lg flex-col gap-4 px-4">
+    <a href="/addpost" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center mx-auto">Add Post</a>
+    <div class="post-preview rounded-lg bg-slate-700 p-4 text-white">
+      <h2 class="mb-3 text-3xl">Test Post</h2>
+      <p class="mb-5">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Officia sunt laudantium quae doloremque enim itaque sequi saepe repudiandae possimus quos maxime impedit, reiciendis aut, veniam fuga minima provident culpa eos...</p>
+      <a href="/post" class="rounded-md bg-white px-4 py-2 text-black">Read more</a>
+    </div>
+
+    <div class="post-preview rounded-lg bg-slate-700 p-4 text-white">
+      <h2 class="mb-3 text-3xl">Test Post</h2>
+      <p class="mb-5">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Officia sunt laudantium quae doloremque enim itaque sequi saepe repudiandae possimus quos maxime impedit, reiciendis aut, veniam fuga minima provident culpa eos...</p>
+      <a href="/post" class="rounded-md bg-white px-4 py-2 text-black">Read more</a>
+    </div>
+    <div class="post-preview rounded-lg bg-slate-700 p-4 text-white">
+      <h2 class="mb-3 text-3xl">Test Post</h2>
+      <p class="mb-5">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Officia sunt laudantium quae doloremque enim itaque sequi saepe repudiandae possimus quos maxime impedit, reiciendis aut, veniam fuga minima provident culpa eos...</p>
+      <a href="/post" class="rounded-md bg-white px-4 py-2 text-black">Read more</a>
+    </div>
+</div>
+{% endblock content %}
