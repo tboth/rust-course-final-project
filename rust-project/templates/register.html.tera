@@ -15,6 +15,6 @@
       <input type="submit" value="Register" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
     </form>
     <p class="mt-5">Have an accound yet?</p>
-    <a href="#" class="flex py-1 w-28 items-center justify-center rounded-md bg-white text-center text-black">Login</a>
+    <a href="/login" class="flex py-1 w-28 items-center justify-center rounded-md bg-white text-center text-black">Login</a>
   </div>
 {% endblock content %}
