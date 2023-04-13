@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 rocket = "=0.5.0-rc.3"
+sea-orm = { version = "^0.9.0", features = [ "sqlx-sqlite", "runtime-tokio-rustls", "macros" ] }
 
 [dependencies.rocket_dyn_templates]
 version = "=0.1.0-rc.3"
 features = ["handlebars", "tera"]
+sea-orm-cli = "0.11.2"
