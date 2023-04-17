@@ -1,7 +1,8 @@
 use rocket_dyn_templates::{Template, context};
-use rocket::fs::FileServer;
+use rocket::{fs::FileServer, form::Form};
 use rocket::State;
 use sea_orm::*;
+use serde::{Serialize};
 
 const DATABASE_URL: &str = "sqlite:./sqlite.db?mode=rwc";
 
@@ -12,9 +13,35 @@ pub async fn set_up_db() -> Result<DatabaseConnection, DbErr> {
 
 #[macro_use] extern crate rocket;
 
+#[derive(Serialize)]
+struct Post {
+    title: String,
+    excerpt: String,
+    id: u16
+}
+
+#[derive(Serialize)]
+struct Posts {
+    posts: Vec<Post>
+}
+
 #[get("/")]
 fn index(db: &State<DatabaseConnection>) -> Template {
-    Template::render("index", context! {field: "value"})
+    let context = Posts{
+            posts: vec! [
+                Post {
+                    title: "My Test title".to_string(),
+                    excerpt: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!...".to_string(),
+                    id: 1
+                },
+                Post {
+                    title: "My Test title 2".to_string(),
+                    excerpt: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!...".to_string(),
+                    id: 2
+                },
+            ],
+        };
+    Template::render("index", context)
 }
 
 #[get("/login")]
@@ -27,9 +54,19 @@ fn register(db: &State<DatabaseConnection>) -> Template {
     Template::render("register", context! {field: "value"})
 }
 
-#[get("/post")]
-fn post(db: &State<DatabaseConnection>) -> Template {
-    Template::render("post", context! {field: "value"})
+#[get("/post/<id>")]
+fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
+    let context = context!{
+        title: format!("My Test title {}", id),
+        content: [
+            "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
+            "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
+            "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!"
+        ],
+        image: "https://picsum.photos/400/300",
+        author: "testUser"
+    };
+    Template::render("post", context)
 }
 
 #[get("/addpost")]
@@ -40,6 +77,44 @@ fn addpost(db: &State<DatabaseConnection>) -> Template {
 #[get("/test")]
 fn test_page(db: &State<DatabaseConnection>) -> &'static str {
     "This is test page"
+}
+
+#[derive(FromForm)]
+struct LoginForm<'a> {
+    name: &'a str,
+    password: &'a str
+}
+
+#[post("/login", data = "<user_input>")]
+fn api_login(user_input: Form<LoginForm>) -> String {
+    format!("Your value: name - {}, password - {}", user_input.name, user_input.password)
+}
+
+#[derive(FromForm)]
+struct RegisterForm<'a> {
+    name: &'a str,
+    email: &'a str,
+    password: &'a str,
+    password_again: &'a str,
+}
+
+#[post("/register", data = "<user_input>")]
+fn api_register(user_input: Form<RegisterForm>) -> String {
+    format!("Your value: name - {}, email - {}, password - {}, password again - {}", 
+    user_input.name, user_input.email, user_input.password, user_input.password_again)
+}
+
+#[derive(FromForm)]
+struct AddPostForm<'a> {
+    title: &'a str,
+    image: &'a str,
+    content: &'a str,
+}
+
+#[post("/addpost", data = "<user_input>")]
+fn api_addpost(user_input: Form<AddPostForm>) -> String {
+    format!("Your value: title - {}, image - {}, content - {}",
+    user_input.title, user_input.image, user_input.content)
 }
 
 #[launch]
@@ -54,4 +129,5 @@ async fn rocket() -> _ {
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, test_page, login, register, post, addpost])
+        .mount("/api", routes![api_login, api_register, api_addpost])
 }

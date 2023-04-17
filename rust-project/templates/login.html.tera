@@ -3,11 +3,11 @@
 {% block content %}
 <div class="content mx-auto mt-4 max-w-xs rounded-lg bg-slate-700 px-4 pb-5 pt-5 text-white">
     <h2 class="mb-3 text-3xl font-thin">Login</h2>
-    <form action="" class="flex flex-col">
+    <form action="/api/login" method="post" class="flex flex-col">
       <label>Name: </label>
-      <input type="text" placeholder="Name" class="text-black" />
+      <input type="text" name="name" id="name" placeholder="Name" class="text-black" />
       <label>Password:</label>
-      <input type="password" name="" id="" placeholder="Password" class="text-black" />
+      <input type="password" name="password" id="password" placeholder="Password" class="text-black" />
       <input type="submit" value="Login" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
     </form>
     <p class="mt-5">Do not have accound yet?</p>

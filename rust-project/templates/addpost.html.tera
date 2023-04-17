@@ -3,11 +3,11 @@
 {% block content %}
 <div class="content mx-auto max-w-xl pt-5 text-white px-4">
     <h2 class="mb-3 text-3xl font-thin">Add blog post</h2>
-    <form action="" class="flex flex-col">
+    <form action="/api/addpost" method="post" class="flex flex-col">
       <label>Title: </label>
-      <input type="text" placeholder="Title" class="text-black" />
+      <input type="text" name="title" placeholder="Title" class="text-black" />
       <label>Image:</label>
-      <input type="file" name="" id="" accept=".png,.jpg,.jpeg,.gif" />
+      <input type="file" name="image" id="" accept=".png,.jpg,.jpeg,.gif" />
       <label>Content: </label>
       <textarea name="content" id="" cols="30" rows="10" placeholder="Content" class="text-black"></textarea>
       <input type="submit" value="Publish" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
