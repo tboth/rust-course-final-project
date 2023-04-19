@@ -11,6 +11,7 @@ pub struct Model {
     #[sea_orm(column_type = "Binary(BlobSize::Blob(None))", nullable)]
     pub picture: Option<Vec<u8>>,
     pub user_id: Option<i32>,
+    pub title: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
