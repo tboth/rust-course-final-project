@@ -6,11 +6,11 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "user")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: Option<i32>,
-    pub username: Option<String>,
-    pub full_name: Option<String>,
-    pub email: Option<String>,
-    pub password: Option<String>,
+    pub id: i32,
+    pub username: String,
+    pub full_name: String,
+    pub email: String,
+    pub password: String,
     pub jwt_token: Option<String>,
 }
 

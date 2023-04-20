@@ -1,8 +1,13 @@
+use database::article;
 use rocket_dyn_templates::{Template, context};
 use rocket::{fs::FileServer, form::Form};
 use rocket::State;
 use sea_orm::*;
 use serde::{Serialize};
+use crate::database::article::Model as Article;
+use crate::database::user::Model as User;
+
+pub mod database;
 
 const DATABASE_URL: &str = "sqlite:./sqlite.db?mode=rwc";
 
@@ -26,7 +31,17 @@ struct Posts {
 }
 
 #[get("/")]
-fn index(db: &State<DatabaseConnection>) -> Template {
+async fn index(db: &State<DatabaseConnection>) -> Template {
+    
+
+    let all_articles = Article::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        r#"SELECT * FROM "article"; "#,
+        [],
+    )).all(db.inner()).await;
+
+    println!("{:?}", all_articles);
+
     let context = Posts{
             posts: vec! [
                 Post {
