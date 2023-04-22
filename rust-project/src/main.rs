@@ -116,6 +116,22 @@ struct LoginForm<'a> {
     password: &'a str
 }
 
+#[derive(FromForm)]
+struct PostForm<'a> {
+    text: &'a str,
+    picture: &'a str,
+    user_id: &'a str,
+    title: &'a str,
+}
+
+#[derive(FromForm)]
+struct RegisterForm<'a> {
+    name: &'a str,
+    full_name: &'a str,
+    email: &'a str,
+    password: &'a str,
+    password_again: &'a str,
+}
 //logging in
 #[post("/login", data = "<user_input>")]
 async fn api_login(user_input: Form<LoginForm<'_>>, db: &State<DatabaseConnection>) -> String {
@@ -144,14 +160,6 @@ async fn api_login(user_input: Form<LoginForm<'_>>, db: &State<DatabaseConnectio
     }
 }
 
-
-#[derive(FromForm)]
-struct PostForm<'a> {
-    text: &'a str,
-    picture: &'a str,
-    user_id: &'a str,
-    title: &'a str,
-}
 //getting post by id
 #[get("/getPost/<id>")]
 async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> String {
@@ -175,14 +183,29 @@ async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> String {
     }
 }
 
-#[derive(FromForm)]
-struct RegisterForm<'a> {
-    name: &'a str,
-    full_name: &'a str,
-    email: &'a str,
-    password: &'a str,
-    password_again: &'a str,
+
+#[get("/getUser/<name>")]
+async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> String {
+    let response = User::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("SELECT * FROM \"user\" WHERE username = '{}'", name),
+        [],
+    )).all(db.inner()).await;
+
+    println!("{:?}", response);
+    match response {
+        Ok(response) => {
+            for column in response {
+                return format!("User '{}' fetched succesfully", column.username);
+            }
+            return format!("User with name {} not found", name);
+        }
+        Err(err) => {
+            return format!("Fetching error: {}", err);
+        }
+    }
 }
+
 
 //creating an account
 #[post("/register", data = "<user_input>")]
@@ -242,5 +265,5 @@ async fn rocket() -> _ {
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, test_page, login, register, post, addpost])
-        .mount("/api", routes![api_getpost,api_login, api_register, api_addpost])
+        .mount("/api", routes![api_getuser,api_getpost,api_login, api_register, api_addpost])
 }
