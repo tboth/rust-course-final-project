@@ -40,7 +40,19 @@ async fn index(db: &State<DatabaseConnection>) -> Template {
         [],
     )).all(db.inner()).await;
 
-    println!("{:?}", all_articles);
+    //println!("{:?}", all_articles);
+    match all_articles {
+        Ok(articles) => {
+            for article in articles {
+                println!("ID: {}", article.id);
+                println!("Username: {}", article.title);
+            }
+        }
+        Err(err) => {
+            println!("Error fetching articles: {}", err);
+        }
+    }
+    
 
     let context = Posts{
             posts: vec! [
@@ -93,6 +105,10 @@ fn addpost(db: &State<DatabaseConnection>) -> Template {
 fn test_page(db: &State<DatabaseConnection>) -> &'static str {
     "This is test page"
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 #[derive(FromForm)]
 struct LoginForm<'a> {
@@ -100,36 +116,118 @@ struct LoginForm<'a> {
     password: &'a str
 }
 
+//logging in
 #[post("/login", data = "<user_input>")]
-fn api_login(user_input: Form<LoginForm>) -> String {
-    format!("Your value: name - {}, password - {}", user_input.name, user_input.password)
+async fn api_login(user_input: Form<LoginForm<'_>>, db: &State<DatabaseConnection>) -> String {
+
+    let response = User::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("SELECT * FROM \"user\" WHERE username = '{}'", user_input.name),
+        [],
+    )).all(db.inner()).await;
+
+    match response {
+        Ok(response) => {
+            for column in response {
+                if column.password == user_input.password {
+                    return format!("Correct password for user {}", column.username);
+                }
+                else {
+                    return format!("Incorrect password for user {}", column.username);
+                }
+            }
+            return format!("User {} not found", user_input.name);
+        }
+        Err(err) => {
+            return format!("Fetching error: {}", err);
+        }
+    }
+}
+
+
+#[derive(FromForm)]
+struct PostForm<'a> {
+    text: &'a str,
+    picture: &'a str,
+    user_id: &'a str,
+    title: &'a str,
+}
+//getting post by id
+#[get("/getPost/<id>")]
+async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> String {
+    let response = Article::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("SELECT * FROM \"article\" WHERE id = '{}'", id),
+        [],
+    )).all(db.inner()).await;
+
+    println!("{:?}", response);
+    match response {
+        Ok(response) => {
+            for column in response {
+                return format!("Article '{}' fetched succesfully", column.title);
+            }
+            return format!("Article with id {} not found", id);
+        }
+        Err(err) => {
+            return format!("Fetching error: {}", err);
+        }
+    }
 }
 
 #[derive(FromForm)]
 struct RegisterForm<'a> {
     name: &'a str,
+    full_name: &'a str,
     email: &'a str,
     password: &'a str,
     password_again: &'a str,
 }
 
+//creating an account
 #[post("/register", data = "<user_input>")]
-fn api_register(user_input: Form<RegisterForm>) -> String {
-    format!("Your value: name - {}, email - {}, password - {}, password again - {}", 
-    user_input.name, user_input.email, user_input.password, user_input.password_again)
+async fn api_register(user_input: Form<RegisterForm<'_>>, db: &State<DatabaseConnection>) -> String {
+    format!("Your value: name - {}, email - {}, password - {}, password again - {}", user_input.name, user_input.email, user_input.password, user_input.password_again);
+
+    if user_input.password == user_input.password_again {
+        let response = User::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Sqlite,
+            &format!("INSERT INTO \"user\" (username, full_name, email, password) VALUES ('{}', '{}', '{}', '{}')", user_input.name,user_input.full_name,user_input.email,user_input.password),
+            [],
+        )).all(db.inner()).await;
+        println!("{:?}", response);
+        match response {
+            Ok(response) => {
+                return format!("User {} created.", user_input.name);
+            }
+            Err(err) => {
+                return format!("Error creating user: {}", err);
+            }
+        }
+    }
+    else {
+        return format!("Passwords do not match");
+    }
 }
 
-#[derive(FromForm)]
-struct AddPostForm<'a> {
-    title: &'a str,
-    image: &'a str,
-    content: &'a str,
-}
 
 #[post("/addpost", data = "<user_input>")]
-fn api_addpost(user_input: Form<AddPostForm>) -> String {
-    format!("Your value: title - {}, image - {}, content - {}",
-    user_input.title, user_input.image, user_input.content)
+async fn api_addpost(user_input: Form<PostForm<'_>>, db: &State<DatabaseConnection>) -> String {
+    let response = Article::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("INSERT INTO \"article\" (text, picture, user_id, title) VALUES ('{}', '{}', '{}', '{}') RETURNING id", user_input.text,user_input.picture,user_input.user_id,user_input.title),
+        [],
+    )).all(db.inner()).await;
+
+    println!("{:?}", response);
+    match response {
+        Ok(response) => {
+            return format!("Article {} created with id: ", user_input.title);
+        }
+        Err(err) => {
+            return format!("Error creating article: {}", err);
+        }
+    }
 }
 
 #[launch]
@@ -144,5 +242,5 @@ async fn rocket() -> _ {
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, test_page, login, register, post, addpost])
-        .mount("/api", routes![api_login, api_register, api_addpost])
+        .mount("/api", routes![api_getpost,api_login, api_register, api_addpost])
 }
