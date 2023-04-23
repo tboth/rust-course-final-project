@@ -1,11 +1,13 @@
 use database::article;
 use rocket_dyn_templates::{Template, context};
-use rocket::{fs::FileServer, form::Form};
+use rocket::{fs::FileServer, form::Form,http::Status};
 use rocket::State;
 use sea_orm::*;
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
 use crate::database::article::Model as Article;
 use crate::database::user::Model as User;
+use serde_json::json;
+
 
 pub mod database;
 
@@ -110,31 +112,40 @@ fn test_page(db: &State<DatabaseConnection>) -> &'static str {
 
 
 
-#[derive(FromForm)]
-struct LoginForm<'a> {
-    name: &'a str,
-    password: &'a str
+#[derive(FromForm, Serialize, Deserialize)]
+struct LoginForm {
+    name: String,
+    password: String
 }
 
-#[derive(FromForm)]
-struct PostForm<'a> {
-    text: &'a str,
-    picture: &'a str,
-    user_id: &'a str,
-    title: &'a str,
+#[derive(FromForm, Serialize, Deserialize)]
+struct PostForm{
+    text: String,
+    picture: String,
+    user_id: i32,
+    title: String,
 }
 
-#[derive(FromForm)]
-struct RegisterForm<'a> {
-    name: &'a str,
-    full_name: &'a str,
-    email: &'a str,
-    password: &'a str,
-    password_again: &'a str,
+#[derive(FromForm, Serialize, Deserialize)]
+struct UserForm {
+    name: String,
+    full_name: String,
+    email: String,
+    password: String,
+    password_again: String,
 }
+
+#[derive(FromForm, Serialize, Deserialize)]
+struct UserResponse {
+    name: String,
+    full_name: String,
+    email: String,
+    password: String,
+}
+
 //logging in
 #[post("/login", data = "<user_input>")]
-async fn api_login(user_input: Form<LoginForm<'_>>, db: &State<DatabaseConnection>) -> String {
+async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) -> String {
 
     let response = User::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
@@ -160,9 +171,10 @@ async fn api_login(user_input: Form<LoginForm<'_>>, db: &State<DatabaseConnectio
     }
 }
 
+
 //getting post by id
 #[get("/getPost/<id>")]
-async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> String {
+async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> Result<String, Status> {
     let response = Article::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
         &format!("SELECT * FROM \"article\" WHERE id = '{}'", id),
@@ -173,19 +185,28 @@ async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> String {
     match response {
         Ok(response) => {
             for column in response {
-                return format!("Article '{}' fetched succesfully", column.title);
+                println!("Article '{}' fetched succesfully", column.title);
+                let json_string = serde_json::to_string(&PostForm{
+                    text: column.text,
+                    picture: column.picture.unwrap_or_else(|| "".to_string()),
+                    user_id: column.user_id,
+                    title: column.title,
+                }).unwrap();
+                return Ok(json_string);
             }
-            return format!("Article with id {} not found", id);
+            println!("Article with id {} not found", id);
+            return Err(Status::NotFound);
         }
         Err(err) => {
-            return format!("Fetching error: {}", err);
+            println!("Fetching error: {}", err);
+            return Err(Status::BadRequest);
         }
     }
 }
 
 
 #[get("/getUser/<name>")]
-async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> String {
+async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> Result<String, Status> {
     let response = User::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
         &format!("SELECT * FROM \"user\" WHERE username = '{}'", name),
@@ -196,20 +217,29 @@ async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> String {
     match response {
         Ok(response) => {
             for column in response {
-                return format!("User '{}' fetched succesfully", column.username);
+                println!("User '{}' fetched succesfully", column.username);
+                let json_string = serde_json::to_string(&UserResponse{
+                    name: column.username,
+                    full_name: column.full_name,
+                    email: column.email,
+                    password: column.password,
+                }).unwrap();
+                println!("{}", json_string);
+                return Ok(json_string);
             }
-            return format!("User with name {} not found", name);
+            println!("User with name {} not found", name);
+            return Err(Status::NotFound);
         }
         Err(err) => {
-            return format!("Fetching error: {}", err);
+            println!("Fetching error: {}", err);
+            return Err(Status::BadRequest);
         }
     }
 }
 
-
 //creating an account
 #[post("/register", data = "<user_input>")]
-async fn api_register(user_input: Form<RegisterForm<'_>>, db: &State<DatabaseConnection>) -> String {
+async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>) -> Status {
     format!("Your value: name - {}, email - {}, password - {}, password again - {}", user_input.name, user_input.email, user_input.password, user_input.password_again);
 
     if user_input.password == user_input.password_again {
@@ -221,37 +251,43 @@ async fn api_register(user_input: Form<RegisterForm<'_>>, db: &State<DatabaseCon
         println!("{:?}", response);
         match response {
             Ok(response) => {
-                return format!("User {} created.", user_input.name);
+                println!("User {} created.", user_input.name);
+                return Status::Created;
             }
             Err(err) => {
-                return format!("Error creating user: {}", err);
+                println!("Error creating user: {}", err);
+                return Status::BadRequest;
             }
         }
     }
     else {
-        return format!("Passwords do not match");
+        println!("Passwords do not match");
+        return Status::ExpectationFailed;
     }
 }
 
 
 #[post("/addpost", data = "<user_input>")]
-async fn api_addpost(user_input: Form<PostForm<'_>>, db: &State<DatabaseConnection>) -> String {
+async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>) -> Status {
     let response = Article::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
-        &format!("INSERT INTO \"article\" (text, picture, user_id, title) VALUES ('{}', '{}', '{}', '{}') RETURNING id", user_input.text,user_input.picture,user_input.user_id,user_input.title),
+        &format!("INSERT INTO \"article\" (text, picture, user_id, title) VALUES ('{}', '{}', '{}', '{}')", user_input.text,user_input.picture,user_input.user_id,user_input.title),
         [],
     )).all(db.inner()).await;
 
     println!("{:?}", response);
     match response {
         Ok(response) => {
-            return format!("Article {} created with id: ", user_input.title);
+            println!("Article {} created", user_input.title);
+            return Status::Created;
         }
         Err(err) => {
-            return format!("Error creating article: {}", err);
+            println!("Error creating article: {}", err);
+            return Status::BadRequest;
         }
     }
 }
+
 
 #[launch]
 async fn rocket() -> _ {
