@@ -4,8 +4,10 @@
 <div class="content mx-auto mt-4 max-w-xs rounded-lg bg-slate-700 px-4 pb-5 pt-5 text-white">
     <h2 class="mb-3 text-3xl font-thin">Register</h2>
     <form action="/api/register" method="post" class="flex flex-col">
-      <label>Name: </label>
-      <input type="text" name="name" placeholder="Name" class="text-black" />
+      <label>Username: </label>
+      <input type="text" name="name" placeholder="Username" class="text-black" />
+      <label>Full Name: </label>
+      <input type="text" name="full_name" placeholder="Full Name" class="text-black" />
       <label>Email: </label>
       <input type="text" name="email" placeholder="Email" class="text-black" />
       <label>Password:</label>

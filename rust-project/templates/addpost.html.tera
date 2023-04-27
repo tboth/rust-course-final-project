@@ -3,14 +3,39 @@
 {% block content %}
 <div class="content mx-auto max-w-xl pt-5 text-white px-4">
     <h2 class="mb-3 text-3xl font-thin">Add blog post</h2>
-    <form action="/api/addpost" method="post" class="flex flex-col">
+    <form action="/api/addpost2" method="post" class="flex flex-col">
       <label>Title: </label>
       <input type="text" name="title" placeholder="Title" class="text-black" />
       <label>Image:</label>
-      <input type="file" name="image" id="" accept=".png,.jpg,.jpeg,.gif" />
+      <input type="file" name="image_name" id="upload" accept=".png,.jpg,.jpeg,.gif" />
       <label>Content: </label>
       <textarea name="content" id="" cols="30" rows="10" placeholder="Content" class="text-black"></textarea>
+      <textarea class="text-black" name="picture" id="picture" style="display: none;"></textarea>
+      <input type="text" name="user_id" value="0" style="display: none;">
       <input type="submit" value="Publish" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
     </form>
-  </div>
+</div>
+<script>
+    document.getElementById('upload').addEventListener('change', (evt) => {
+      let files = evt.target.files; // FileList object
+  
+      // use the 1st file from the list
+      let f = files[0];
+      
+      let reader = new FileReader();
+  
+      // Closure to capture the file information.
+      reader.onload = (function(theFile) {
+          return function(e) {
+            
+            document.querySelector('#picture').value = e.target.result;
+
+            console.log(e.target.result.length);
+          };
+        })(f);
+  
+        // Read in the image file as a data URL.
+        reader.readAsText(f);
+    }, false);
+  </script>
 {% endblock content %}

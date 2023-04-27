@@ -3,7 +3,7 @@
 {% block content %}
 <div class="content mx-auto max-w-xl pt-5 text-white px-4">
     <h2 class="mb-4 text-4xl font-thin">{{ title }}</h2>
-    <img class="mx-auto mb-2 rounded-md" src="{{ image }}" alt="" srcset="" />
+    <img class="mx-auto mb-2 rounded-md" src="data:image/png;base64, {{ image }}" alt="" srcset="" />
     {% for paragraph in content %}
         <p class="mb-2">{{ paragraph }}</p>
     {% endfor %}

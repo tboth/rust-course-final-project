@@ -7,6 +7,7 @@ use serde::{Serialize, Deserialize};
 use crate::database::article::Model as Article;
 use crate::database::user::Model as User;
 use serde_json::json;
+use rocket::response::Redirect;
 
 
 pub mod database;
@@ -55,6 +56,9 @@ async fn index(db: &State<DatabaseConnection>) -> Template {
         }
     }
     
+    // let result = api_getpost(id, db).await.unwrap();
+    // let result: String = api_post
+    // let object: serde_json::Value = serde_json::from_str(&result).unwrap();
 
     let context = Posts{
             posts: vec! [
@@ -84,17 +88,30 @@ fn register(db: &State<DatabaseConnection>) -> Template {
 }
 
 #[get("/post/<id>")]
-fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
+async fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
+    let result = api_getpost(id, db).await.unwrap();
+    let object: serde_json::Value = serde_json::from_str(&result).unwrap();
+
+    // let paragraphs: Vec<&str> = object["text"].to_string().split("\n").into_iter().collect();
+    // println!("{:?}", object["text"].to_string().lines().collect::<Vec<&str>>());
+
     let context = context!{
-        title: format!("My Test title {}", id),
-        content: [
-            "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
-            "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
-            "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!"
-        ],
-        image: "https://picsum.photos/400/300",
-        author: "testUser"
+        title: object["title"].as_str(),
+        content: [object["text"].as_str()],
+        image: object["picture"].as_str(),
+        author: object["user_id"].as_str()
     };
+
+    // let context = context!{
+    //     title: format!("My Test title {}", id),
+    //     content: [
+    //         "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
+    //         "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
+    //         "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!"
+    //     ],
+    //     image: "https://picsum.photos/400/300",
+    //     author: "testUser"
+    // };
     Template::render("post", context)
 }
 
@@ -124,6 +141,7 @@ struct PostForm{
     picture: String,
     user_id: i32,
     title: String,
+    image_name: String
 }
 
 #[derive(FromForm, Serialize, Deserialize)]
@@ -157,6 +175,7 @@ async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) 
         Ok(response) => {
             for column in response {
                 if column.password == user_input.password {
+                    Redirect::to("/");
                     return format!("Correct password for user {}", column.username);
                 }
                 else {
@@ -181,7 +200,7 @@ async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> Result<String, 
         [],
     )).all(db.inner()).await;
 
-    println!("{:?}", response);
+    // println!("{:?}", response);
     match response {
         Ok(response) => {
             for column in response {
@@ -191,6 +210,7 @@ async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> Result<String, 
                     picture: column.picture.unwrap_or_else(|| "".to_string()),
                     user_id: column.user_id,
                     title: column.title,
+                    image_name: "".to_string()
                 }).unwrap();
                 return Ok(json_string);
             }
@@ -266,6 +286,19 @@ async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>
     }
 }
 
+#[derive(FromForm, Serialize, Deserialize)]
+struct PostForm2<'r>{
+    text: String,
+    picture: &'r [u8],
+    user_id: i32,
+    title: String,
+    image_name: String
+}
+
+#[post("/addpost2", data = "<user_input>")]
+async fn api_addpost2(user_input: Form<PostForm2<'_>>) -> String{
+    format!("text: {}, picture: {:?}, title: {}, user_id: {}, image_nameL {}", user_input.text, user_input.picture, user_input.title, user_input.user_id, user_input.image_name)
+}
 
 #[post("/addpost", data = "<user_input>")]
 async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>) -> Status {
@@ -301,5 +334,5 @@ async fn rocket() -> _ {
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, test_page, login, register, post, addpost])
-        .mount("/api", routes![api_getuser,api_getpost,api_login, api_register, api_addpost])
+        .mount("/api", routes![api_getuser,api_getpost,api_login, api_register, api_addpost, api_addpost2])
 }
