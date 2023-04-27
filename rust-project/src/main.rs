@@ -1,6 +1,6 @@
 use database::article;
 use rocket_dyn_templates::{Template, context};
-use rocket::{fs::FileServer, form::Form,http::Status};
+use rocket::{fs::FileServer, form::Form, http::Status, form::DataField};
 use rocket::State;
 use sea_orm::*;
 use serde::{Serialize, Deserialize};
@@ -8,7 +8,7 @@ use crate::database::article::Model as Article;
 use crate::database::user::Model as User;
 use serde_json::json;
 use rocket::response::Redirect;
-
+use rocket::data::{Limits, ToByteUnit};
 
 pub mod database;
 
@@ -286,19 +286,6 @@ async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>
     }
 }
 
-#[derive(FromForm, Serialize, Deserialize)]
-struct PostForm2<'r>{
-    text: String,
-    picture: &'r [u8],
-    user_id: i32,
-    title: String,
-    image_name: String
-}
-
-#[post("/addpost2", data = "<user_input>")]
-async fn api_addpost2(user_input: Form<PostForm2<'_>>) -> String{
-    format!("text: {}, picture: {:?}, title: {}, user_id: {}, image_nameL {}", user_input.text, user_input.picture, user_input.title, user_input.user_id, user_input.image_name)
-}
 
 #[post("/addpost", data = "<user_input>")]
 async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>) -> Status {
@@ -329,10 +316,13 @@ async fn rocket() -> _ {
         Err(err) => panic!("{}", err),
     };
 
+    let limits = Limits::default()
+        .limit("form", 64.kibibytes());
+
     rocket::build()
         .manage(db)
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, test_page, login, register, post, addpost])
-        .mount("/api", routes![api_getuser,api_getpost,api_login, api_register, api_addpost, api_addpost2])
+        .mount("/api", routes![api_getuser,api_getpost,api_login, api_register, api_addpost])
 }
