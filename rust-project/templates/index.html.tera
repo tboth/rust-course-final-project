@@ -2,6 +2,7 @@
 {% block title %}Index{% endblock title %}
 {% block content %}
 <div class="content mx-auto mt-8 flex max-w-lg flex-col gap-4 px-4">
+    <a href="/addpost" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center mx-auto">Add Post</a>
     
     {% for post in posts %}
       <div class="post-preview rounded-lg bg-slate-700 p-4 text-white">
