@@ -126,13 +126,17 @@ fn test_page(db: &State<DatabaseConnection>) -> &'static str {
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
 #[derive(FromForm, Serialize, Deserialize)]
 struct LoginForm {
     name: String,
     password: String
+}
+
+#[derive(FromForm, Serialize, Deserialize)]
+struct AllPosts{
+    text: String,
+    user_id: i32,
+    title: String,
 }
 
 #[derive(FromForm, Serialize, Deserialize)]
@@ -216,6 +220,37 @@ async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> Result<String, 
             }
             println!("Article with id {} not found", id);
             return Err(Status::NotFound);
+        }
+        Err(err) => {
+            println!("Fetching error: {}", err);
+            return Err(Status::BadRequest);
+        }
+    }
+}
+
+
+//getting all posts
+#[get("/getAllPosts")]
+async fn api_getallposts( db: &State<DatabaseConnection>) -> Result<String, Status> {
+    let response = Article::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("SELECT * FROM 'article' "),
+        [],
+    )).all(db.inner()).await;
+
+    match response {
+        Ok(posts) => {
+            let mut post_forms = Vec::new();
+            for post in posts {
+                let post_form = AllPosts {
+                    text: post.text,
+                    title: post.title,
+                    user_id: post.user_id
+                };
+                post_forms.push(post_form);
+            }
+            let json_string = serde_json::to_string(&post_forms).unwrap();
+            return Ok(json_string);
         }
         Err(err) => {
             println!("Fetching error: {}", err);
@@ -324,5 +359,5 @@ async fn rocket() -> _ {
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, test_page, login, register, post, addpost])
-        .mount("/api", routes![api_getuser,api_getpost,api_login, api_register, api_addpost])
+        .mount("/api", routes![api_getallposts,api_getuser,api_getpost,api_login, api_register, api_addpost])
 }
