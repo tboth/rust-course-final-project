@@ -27,6 +27,7 @@ struct Post {
 
 #[derive(Serialize)]
 struct Posts {
+    user_logged_in: u32,
     posts: Vec<Post>
 }
 
@@ -36,6 +37,7 @@ async fn index(db: &State<DatabaseConnection>) -> Template {
     let posts: Vec<serde_json::Value> = serde_json::from_str(&result).unwrap();
 
     let mut context = Posts{
+        user_logged_in: 0,
         posts: Vec::new()
     };
 
@@ -54,12 +56,12 @@ async fn index(db: &State<DatabaseConnection>) -> Template {
 
 #[get("/login")]
 fn login() -> Template {
-    Template::render("login", context! {field: "value"})
+    Template::render("login", context! {user_logged_in: 0})
 }
 
 #[get("/register")]
 fn register() -> Template {
-    Template::render("register", context! {field: "value"})
+    Template::render("register", context! {user_logged_in: 0})
 }
 
 #[get("/post/<id>")]
@@ -71,6 +73,7 @@ async fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
     let paragraphs = text.lines().collect::<Vec<&str>>();
 
     let context = context!{
+        user_logged_in: 0,
         title: object["title"].as_str(),
         content: paragraphs,
         image: object["picture"].as_str(),
@@ -128,7 +131,7 @@ struct UserResponse {
 
 //logging in
 #[post("/login", data = "<user_input>")]
-async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) -> String {
+async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) -> Result<Redirect, String> {
 
     let response = User::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
@@ -140,17 +143,17 @@ async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) 
         Ok(response) => {
             for column in response {
                 if column.password == user_input.password {
-                    Redirect::to("/");
-                    return format!("Correct password for user {}", column.username);
+                    return Ok(Redirect::to("/"))
+                    // return format!("Correct password for user {}", column.username);
                 }
                 else {
-                    return format!("Incorrect password for user {}", column.username);
+                    return Err(format!("Incorrect password for user {}", column.username))
                 }
             }
-            return format!("User {} not found", user_input.name);
+            return Err(format!("User {} not found", user_input.name))
         }
         Err(err) => {
-            return format!("Fetching error: {}", err);
+            return Err(format!("Fetching error: {}", err))
         }
     }
 }
@@ -255,7 +258,7 @@ async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> Result<Str
 
 //creating an account
 #[post("/register", data = "<user_input>")]
-async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>) -> Status {
+async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>) -> Result<Redirect, Status> {
     format!("Your value: name - {}, email - {}, password - {}, password again - {}", user_input.name, user_input.email, user_input.password, user_input.password_again);
 
     if user_input.password == user_input.password_again {
@@ -268,23 +271,24 @@ async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>
         match response {
             Ok(response) => {
                 println!("User {} created.", user_input.name);
-                return Status::Created;
+                // return Status::Created;
+                return Ok(Redirect::to("/"))
             }
             Err(err) => {
                 println!("Error creating user: {}", err);
-                return Status::BadRequest;
+                return Err(Status::BadRequest)
             }
         }
     }
     else {
         println!("Passwords do not match");
-        return Status::ExpectationFailed;
+        return Err(Status::ExpectationFailed)
     }
 }
 
 
 #[post("/addpost", data = "<user_input>")]
-async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>) -> Status {
+async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>) -> Result<Redirect, Status> {
     let response = Article::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
         &format!("INSERT INTO \"article\" (text, picture, user_id, title) VALUES ('{}', '{}', '{}', '{}')", user_input.text,user_input.picture,user_input.user_id,user_input.title),
@@ -295,11 +299,11 @@ async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>)
     match response {
         Ok(response) => {
             println!("Article {} created", user_input.title);
-            return Status::Created;
+            return Ok(Redirect::to("/"))
         }
         Err(err) => {
             println!("Error creating article: {}", err);
-            return Status::BadRequest;
+            return Err(Status::BadRequest)
         }
     }
 }

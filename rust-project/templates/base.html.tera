@@ -7,9 +7,15 @@
 <body>
     <div class="wrapper min-h-screen w-full bg-slate-600 pb-10">
         <header class="flex w-full items-center justify-between gap-4 bg-slate-800 px-4 py-4">
-          <a href="/login" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Login</a>
-          <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
-          <a href="/register" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Register</a>
+            {% if user_logged_in == 0 %}
+                <a href="/login" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Login</a>
+                <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
+                <a href="/register" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Register</a>
+            {% else %}
+                <a href="/logout" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Log out</a>
+                <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
+                <a href="/addpost" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Add Post</a>
+            {% endif %}
         </header>
     {% block content %}{% endblock content %}
     </div>
