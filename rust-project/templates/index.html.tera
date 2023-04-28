@@ -7,7 +7,7 @@
     {% for post in posts %}
       <div class="post-preview rounded-lg bg-slate-700 p-4 text-white">
         <h2 class="mb-3 text-3xl">{{ post.title }}</h2>
-        <p class="mb-5">{{ post.excerpt }}</p>
+        <p class="mb-5">{{ post.excerpt }}...</p>
         <a href="/post/{{ post.id }}" class="rounded-md bg-white px-4 py-2 text-black">Read more</a>
       </div>
     {% endfor %}

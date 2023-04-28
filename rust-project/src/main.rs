@@ -1,14 +1,11 @@
-use database::article;
 use rocket_dyn_templates::{Template, context};
-use rocket::{fs::FileServer, form::Form, http::Status, form::DataField};
+use rocket::{fs::FileServer, form::Form, http::Status};
 use rocket::State;
 use sea_orm::*;
 use serde::{Serialize, Deserialize};
 use crate::database::article::Model as Article;
 use crate::database::user::Model as User;
-use serde_json::json;
 use rocket::response::Redirect;
-use rocket::data::{Limits, ToByteUnit};
 
 pub mod database;
 
@@ -25,7 +22,7 @@ pub async fn set_up_db() -> Result<DatabaseConnection, DbErr> {
 struct Post {
     title: String,
     excerpt: String,
-    id: u16
+    id: String
 }
 
 #[derive(Serialize)]
@@ -34,56 +31,34 @@ struct Posts {
 }
 
 #[get("/")]
-async fn index(db: &State<DatabaseConnection>) -> Template {
-    
+async fn index(db: &State<DatabaseConnection>) -> Template {  
+    let result = api_getallposts(db).await.unwrap();
+    let posts: Vec<serde_json::Value> = serde_json::from_str(&result).unwrap();
 
-    let all_articles = Article::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Sqlite,
-        r#"SELECT * FROM "article"; "#,
-        [],
-    )).all(db.inner()).await;
+    let mut context = Posts{
+        posts: Vec::new()
+    };
 
-    //println!("{:?}", all_articles);
-    match all_articles {
-        Ok(articles) => {
-            for article in articles {
-                println!("ID: {}", article.id);
-                println!("Username: {}", article.title);
-            }
-        }
-        Err(err) => {
-            println!("Error fetching articles: {}", err);
-        }
-    }
-    
-    // let result = api_getpost(id, db).await.unwrap();
-    // let result: String = api_post
-    // let object: serde_json::Value = serde_json::from_str(&result).unwrap();
+    for post in &posts {
+        let title = post["title"].as_str().unwrap().to_string();
+        let text = post["text"].as_str().unwrap().to_string();
+        context.posts.push(Post{
+            title: title,
+            excerpt: if text.len() > 200 {(&text[0..200]).to_string()} else {text},
+            id: post["id"].to_string()
+        })
+    };
 
-    let context = Posts{
-            posts: vec! [
-                Post {
-                    title: "My Test title".to_string(),
-                    excerpt: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!...".to_string(),
-                    id: 1
-                },
-                Post {
-                    title: "My Test title 2".to_string(),
-                    excerpt: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!...".to_string(),
-                    id: 2
-                },
-            ],
-        };
     Template::render("index", context)
 }
 
 #[get("/login")]
-fn login(db: &State<DatabaseConnection>) -> Template {
+fn login() -> Template {
     Template::render("login", context! {field: "value"})
 }
 
 #[get("/register")]
-fn register(db: &State<DatabaseConnection>) -> Template {
+fn register() -> Template {
     Template::render("register", context! {field: "value"})
 }
 
@@ -92,38 +67,24 @@ async fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
     let result = api_getpost(id, db).await.unwrap();
     let object: serde_json::Value = serde_json::from_str(&result).unwrap();
 
-    // let paragraphs: Vec<&str> = object["text"].to_string().split("\n").into_iter().collect();
-    // println!("{:?}", object["text"].to_string().lines().collect::<Vec<&str>>());
+    let text = object["text"].as_str().unwrap();
+    let paragraphs = text.lines().collect::<Vec<&str>>();
 
     let context = context!{
         title: object["title"].as_str(),
-        content: [object["text"].as_str()],
+        content: paragraphs,
         image: object["picture"].as_str(),
         author: object["user_id"].as_str()
     };
 
-    // let context = context!{
-    //     title: format!("My Test title {}", id),
-    //     content: [
-    //         "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
-    //         "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!",
-    //         "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ducimus perferendis at praesentium ipsam expedita nemo temporibus deleniti? Nam enim ex ut illum voluptas voluptatem, unde cum totam quae optio soluta!"
-    //     ],
-    //     image: "https://picsum.photos/400/300",
-    //     author: "testUser"
-    // };
     Template::render("post", context)
 }
 
 #[get("/addpost")]
-fn addpost(db: &State<DatabaseConnection>) -> Template {
+fn addpost() -> Template {
     Template::render("addpost", context! {field: "value"})
 }
 
-#[get("/test")]
-fn test_page(db: &State<DatabaseConnection>) -> &'static str {
-    "This is test page"
-}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(FromForm, Serialize, Deserialize)]
@@ -135,7 +96,7 @@ struct LoginForm {
 #[derive(FromForm, Serialize, Deserialize)]
 struct AllPosts{
     text: String,
-    user_id: i32,
+    id: i32,
     title: String,
 }
 
@@ -234,7 +195,7 @@ async fn api_getpost(id: u16, db: &State<DatabaseConnection>) -> Result<String, 
 async fn api_getallposts( db: &State<DatabaseConnection>) -> Result<String, Status> {
     let response = Article::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
-        &format!("SELECT * FROM 'article' "),
+        &format!("SELECT * FROM 'article' ORDER BY id DESC "),
         [],
     )).all(db.inner()).await;
 
@@ -245,7 +206,7 @@ async fn api_getallposts( db: &State<DatabaseConnection>) -> Result<String, Stat
                 let post_form = AllPosts {
                     text: post.text,
                     title: post.title,
-                    user_id: post.user_id
+                    id: post.id
                 };
                 post_forms.push(post_form);
             }
@@ -351,13 +312,10 @@ async fn rocket() -> _ {
         Err(err) => panic!("{}", err),
     };
 
-    let limits = Limits::default()
-        .limit("form", 64.kibibytes());
-
     rocket::build()
         .manage(db)
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
-        .mount("/", routes![index, test_page, login, register, post, addpost])
+        .mount("/", routes![index, login, register, post, addpost])
         .mount("/api", routes![api_getallposts,api_getuser,api_getpost,api_login, api_register, api_addpost])
 }
