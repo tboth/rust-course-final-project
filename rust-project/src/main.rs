@@ -85,7 +85,7 @@ async fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
 
 #[get("/addpost")]
 fn addpost() -> Template {
-    Template::render("addpost", context! {field: "value"})
+    Template::render("addpost", context! {user_logged_in: 0, field: "value"})
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
