@@ -3,21 +3,74 @@
 <head>
     <link rel="stylesheet" href="/static/style.css" />
     <title>{% block title %}{% endblock title %} - Rust Blog</title>
+    <script>
+        if (localStorage.getItem("rustBlogUserId") === null) {
+            localStorage.setItem("rustBlogUserId", "0");
+        }
+    </script>
 </head>
 <body>
     <div class="wrapper min-h-screen w-full bg-slate-600 pb-10">
-        <header class="flex w-full items-center justify-between gap-4 bg-slate-800 px-4 py-4">
-            {% if user_logged_in == 0 %}
-                <a href="/login" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Login</a>
-                <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
-                <a href="/register" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Register</a>
-            {% else %}
-                <a href="/logout" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Log out</a>
-                <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
-                <a href="/addpost" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Add Post</a>
-            {% endif %}
+
+
+        {% if user_logged_in == 0 %}
+        <header id="header_logged_out" class="flex w-full items-center justify-between gap-4 bg-slate-800 px-4 py-4">
+            <a href="/login" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Login</a>
+            <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
+            <a href="/register" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Register</a>
         </header>
-    {% block content %}{% endblock content %}
+        <header id="header_logged_in" class="hidden w-full items-center justify-between gap-4 bg-slate-800 px-4 py-4">
+            <a href="/?user_id=-1" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Log out</a>
+            <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
+            <a href="/addpost" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Add Post</a>
+        </header>
+        {% else %}
+        <header id="header_logged_out" class="hidden w-full items-center justify-between gap-4 bg-slate-800 px-4 py-4">
+            <a href="/login" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Login</a>
+            <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
+            <a href="/register" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Register</a>
+        </header>
+        <header  id="header_logged_in" class="flex w-full items-center justify-between gap-4 bg-slate-800 px-4 py-4">
+            <a href="/?user_id=-1" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Log out</a>
+            <h1 class="text-4xl font-thin text-white"><a href="/">Rust Blog</a></h1>
+            <a href="/addpost" class="flex h-8 w-24 items-center justify-center rounded-md bg-white text-center">Add Post</a>
+        </header>
+        {% endif %}
+
+        {% if user_logged_in != 0 %}
+        <script>
+            localStorage.setItem("rustBlogUserId", "{{ user_logged_in }}");
+        </script>
+        {% endif %}
+        
+        <script>
+            let header_logged_in = document.getElementById("header_logged_in");
+            let header_logged_out = document.getElementById("header_logged_out");
+
+            if (+localStorage.getItem("rustBlogUserId") > 0) {
+                if( header_logged_in.classList.contains("hidden") ) {
+                    header_logged_in.classList.remove("hidden");
+                    header_logged_in.classList.add("flex");
+                }
+                if( header_logged_out.classList.contains("flex") ) {
+                    header_logged_out.classList.remove("flex");
+                    header_logged_out.classList.add("hidden");
+                }   
+            }
+
+            if (+localStorage.getItem("rustBlogUserId") == -1) {
+                if( header_logged_out.classList.contains("hidden") ) {
+                    header_logged_out.classList.remove("hidden");
+                    header_logged_out.classList.add("flex");
+                }
+                if( header_logged_in.classList.contains("flex") ) {
+                    header_logged_in.classList.remove("flex");
+                    header_logged_in.classList.add("hidden");
+                }  
+            }
+        </script>
+
+        {% block content %}{% endblock content %}
     </div>
 </body>
 </html>

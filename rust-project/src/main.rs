@@ -27,12 +27,12 @@ struct Post {
 
 #[derive(Serialize)]
 struct Posts {
-    user_logged_in: u32,
+    user_logged_in: i32,
     posts: Vec<Post>
 }
 
-#[get("/")]
-async fn index(db: &State<DatabaseConnection>) -> Template {  
+#[get("/?<user_id>")]
+async fn index(user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template {  
     let result = api_getallposts(db).await.unwrap();
     let posts: Vec<serde_json::Value> = serde_json::from_str(&result).unwrap();
 
@@ -40,6 +40,12 @@ async fn index(db: &State<DatabaseConnection>) -> Template {
         user_logged_in: 0,
         posts: Vec::new()
     };
+
+    println!("{:?}", user_id);
+
+    if user_id.is_some(){
+        context.user_logged_in = user_id.unwrap();
+    }
 
     for post in &posts {
         let title = post["title"].as_str().unwrap().to_string();
@@ -143,7 +149,7 @@ async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) 
         Ok(response) => {
             for column in response {
                 if column.password == user_input.password {
-                    return Ok(Redirect::to("/"))
+                    return Ok(Redirect::to(format!("/?user_id={}", column.id)))
                     // return format!("Correct password for user {}", column.username);
                 }
                 else {
