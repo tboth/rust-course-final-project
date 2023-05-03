@@ -185,21 +185,20 @@ async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) 
 
     let response = User::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
-        &format!("SELECT * FROM \"user\" WHERE username = '{}'", user_input.name),
+        &format!("SELECT * FROM 'user' WHERE username = '{}'", user_input.name),
         [],
     )).all(db.inner()).await;
 
     match response {
         Ok(response) => {
             for column in response {
-                if column.password == user_input.password {
+                if column.password == user_input.password && column.username == user_input.name{
 
                     let response = User::find_by_statement(Statement::from_sql_and_values(
                         DbBackend::Sqlite,
                         &format!("UPDATE \"user\" SET \"logged_in\" = 1 WHERE id = '{}'", column.id),
                         [],
                     )).all(db.inner()).await;
-
                     return Ok(Redirect::to(format!("/?user_id={}", column.id)))
                     // return format!("Correct password for user {}", column.username);
                 }
