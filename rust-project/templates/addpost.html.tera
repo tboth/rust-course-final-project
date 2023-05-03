@@ -11,12 +11,11 @@
       <label>Content: </label>
       <textarea name="text" id="" cols="30" rows="10" placeholder="Content" class="text-black p-1"></textarea>
       <textarea class="text-black" name="picture" id="picture" style="display: none;"></textarea>
-      <input type="text" name="user_id" value="1" style="display: none;">
+      <input type="text" name="user_id" value="{{user_logged_in}}" style="display: none;">
       <input type="submit" value="Publish" class="mt-2 w-28 rounded-md bg-white py-1 text-black cursor-pointer" />
     </form>
 </div>
 <script>
-  document.querySelector("form input[name='user_id']").value = localStorage.getItem("rustBlogUserId");
 
   function getBase64(file) {
     var reader = new FileReader();

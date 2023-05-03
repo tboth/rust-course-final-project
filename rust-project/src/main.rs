@@ -41,10 +41,11 @@ async fn index(user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template
         posts: Vec::new()
     };
 
-    println!("{:?}", user_id);
-
-    if user_id.is_some(){
-        context.user_logged_in = user_id.unwrap();
+    if user_id.is_some() && user_id.unwrap().to_string() != 0.to_string(){
+        let is_logged_in = api_check_logged_in(user_id.unwrap(), db).await.unwrap();
+        if is_logged_in.to_string() == 1.to_string(){
+            context.user_logged_in = user_id.unwrap();
+        }
     }
 
     for post in &posts {
@@ -60,38 +61,81 @@ async fn index(user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template
     Template::render("index", context)
 }
 
-#[get("/login")]
-fn login() -> Template {
-    Template::render("login", context! {user_logged_in: 0})
+#[get("/login?<user_id>")]
+async fn login(user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template {
+    let mut context = context!{
+        user_logged_in: 0
+    };
+
+    if user_id.is_some() && user_id.unwrap().to_string() != 0.to_string(){
+        let is_logged_in = api_check_logged_in(user_id.unwrap(), db).await.unwrap();
+        if is_logged_in.to_string() == 1.to_string(){
+            context.user_logged_in = user_id.unwrap();
+        }
+    }
+
+    Template::render("login", context)
 }
 
-#[get("/register")]
-fn register() -> Template {
-    Template::render("register", context! {user_logged_in: 0})
+#[get("/register?<user_id>")]
+async fn register(user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template {
+    let mut context = context!{
+        user_logged_in: 0
+    };
+
+    if user_id.is_some() && user_id.unwrap().to_string() != 0.to_string(){
+        let is_logged_in = api_check_logged_in(user_id.unwrap(), db).await.unwrap();
+        if is_logged_in.to_string() == 1.to_string(){
+            context.user_logged_in = user_id.unwrap();
+        }
+    }
+
+    Template::render("register", context)
 }
 
-#[get("/post/<id>")]
-async fn post(id: u16, db: &State<DatabaseConnection>) -> Template {
+#[get("/post/<id>?<user_id>")]
+async fn post(id: u16, user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template {
     let result = api_getpost(id, db).await.unwrap();
     let object: serde_json::Value = serde_json::from_str(&result).unwrap();
 
     let text = object["text"].as_str().unwrap();
     let paragraphs = text.lines().collect::<Vec<&str>>();
 
-    let context = context!{
+    let author = api_getuser(object["user_id"].to_string().parse::<i32>().unwrap(), db).await.unwrap();
+    let author_object: serde_json::Value = serde_json::from_str(&author).unwrap();
+
+    let mut context = context!{
         user_logged_in: 0,
         title: object["title"].as_str(),
         content: paragraphs,
         image: object["picture"].as_str(),
-        author: object["user_id"].as_str()
+        author: author_object["full_name"].as_str()
     };
+
+    if user_id.is_some() && user_id.unwrap().to_string() != 0.to_string(){
+        let is_logged_in = api_check_logged_in(user_id.unwrap(), db).await.unwrap();
+        if is_logged_in.to_string() == 1.to_string(){
+            context.user_logged_in = user_id.unwrap();
+        }
+    }
 
     Template::render("post", context)
 }
 
-#[get("/addpost")]
-fn addpost() -> Template {
-    Template::render("addpost", context! {user_logged_in: 0, field: "value"})
+#[get("/addpost?<user_id>")]
+async fn addpost(user_id: Option<i32>, db: &State<DatabaseConnection>) -> Template {
+    let mut context = context!{
+        user_logged_in: 0
+    };
+
+    if user_id.is_some() && user_id.unwrap().to_string() != 0.to_string(){
+        let is_logged_in = api_check_logged_in(user_id.unwrap(), db).await.unwrap();
+        if is_logged_in.to_string() == 1.to_string(){
+            context.user_logged_in = user_id.unwrap();
+        }
+    }
+
+    Template::render("addpost", context)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +193,13 @@ async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) 
         Ok(response) => {
             for column in response {
                 if column.password == user_input.password {
+
+                    let response = User::find_by_statement(Statement::from_sql_and_values(
+                        DbBackend::Sqlite,
+                        &format!("UPDATE \"user\" SET \"logged_in\" = 1 WHERE id = '{}'", column.id),
+                        [],
+                    )).all(db.inner()).await;
+
                     return Ok(Redirect::to(format!("/?user_id={}", column.id)))
                     // return format!("Correct password for user {}", column.username);
                 }
@@ -157,6 +208,48 @@ async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnection>) 
                 }
             }
             return Err(format!("User {} not found", user_input.name))
+        }
+        Err(err) => {
+            return Err(format!("Fetching error: {}", err))
+        }
+    }
+}
+
+//logging out
+#[get("/logout/<user_id>")]
+async fn api_logout(user_id: i32, db: &State<DatabaseConnection>) -> Result<Redirect, String> {
+
+    println!("HERE");
+
+    let response = User::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("UPDATE \"user\" SET \"logged_in\" = 0 WHERE id = '{}'", user_id),
+        [],
+    )).all(db.inner()).await;
+
+    match response {
+        Ok(response) => {
+            return Ok(Redirect::to("/"))
+        }
+        Err(err) => {
+            return Err(format!("Fetching error: {}", err))
+        }
+    }
+}
+
+//check_logged_in
+#[get("/check_logged_in/<user_id>")]
+async fn api_check_logged_in(user_id: i32, db: &State<DatabaseConnection>) -> Result<String, String> {
+
+    let response = User::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        &format!("SELECT * FROM \"user\" WHERE id = '{}'", user_id),
+        [],
+    )).all(db.inner()).await;
+
+    match response {
+        Ok(response) => {
+            return Ok(response[0].logged_in.to_string())
         }
         Err(err) => {
             return Err(format!("Fetching error: {}", err))
@@ -230,11 +323,11 @@ async fn api_getallposts( db: &State<DatabaseConnection>) -> Result<String, Stat
 }
 
 
-#[get("/getUser/<name>")]
-async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> Result<String, Status> {
+#[get("/getUser/<id>")]
+async fn api_getuser(id: i32, db: &State<DatabaseConnection>) -> Result<String, Status> {
     let response = User::find_by_statement(Statement::from_sql_and_values(
         DbBackend::Sqlite,
-        &format!("SELECT * FROM \"user\" WHERE username = '{}'", name),
+        &format!("SELECT * FROM \"user\" WHERE id = '{}'", id),
         [],
     )).all(db.inner()).await;
 
@@ -252,7 +345,7 @@ async fn api_getuser(name: String, db: &State<DatabaseConnection>) -> Result<Str
                 println!("{}", json_string);
                 return Ok(json_string);
             }
-            println!("User with name {} not found", name);
+            println!("User with id {} not found", id);
             return Err(Status::NotFound);
         }
         Err(err) => {
@@ -270,7 +363,7 @@ async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnection>
     if user_input.password == user_input.password_again {
         let response = User::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Sqlite,
-            &format!("INSERT INTO \"user\" (username, full_name, email, password) VALUES ('{}', '{}', '{}', '{}')", user_input.name,user_input.full_name,user_input.email,user_input.password),
+            &format!("INSERT INTO \"user\" (username, full_name, email, password, logged_in) VALUES ('{}', '{}', '{}', '{}', 0)", user_input.name,user_input.full_name,user_input.email,user_input.password),
             [],
         )).all(db.inner()).await;
         println!("{:?}", response);
@@ -305,7 +398,7 @@ async fn api_addpost(user_input: Form<PostForm>, db: &State<DatabaseConnection>)
     match response {
         Ok(response) => {
             println!("Article {} created", user_input.title);
-            return Ok(Redirect::to("/"))
+            return Ok(Redirect::to(format!("/?user_id={}", user_input.user_id)))
         }
         Err(err) => {
             println!("Error creating article: {}", err);
@@ -327,5 +420,5 @@ async fn rocket() -> _ {
         .attach(Template::fairing())
         .mount("/static", FileServer::from("static"))
         .mount("/", routes![index, login, register, post, addpost])
-        .mount("/api", routes![api_getallposts,api_getuser,api_getpost,api_login, api_register, api_addpost])
+        .mount("/api", routes![api_getallposts,api_getuser,api_getpost,api_login, api_register, api_addpost, api_logout, api_check_logged_in])
 }
