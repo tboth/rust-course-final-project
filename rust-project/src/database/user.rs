@@ -11,7 +11,7 @@ pub struct Model {
     pub full_name: String,
     pub email: String,
     pub password: String,
-    pub jwt_token: Option<String>,
+    pub logged_in: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
