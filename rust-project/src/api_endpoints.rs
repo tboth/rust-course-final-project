@@ -9,7 +9,8 @@ use rocket::response::Redirect;
 #[derive(FromForm, Serialize, Deserialize)]
 pub struct LoginForm {
     name: String,
-    password: String
+    password: String,
+    mfa_pin: String
 }
 
 #[derive(FromForm, Serialize, Deserialize)]
@@ -35,6 +36,7 @@ pub struct UserForm {
     email: String,
     password: String,
     password_again: String,
+    password_2fa: String
 }
 
 #[derive(FromForm, Serialize, Deserialize)]
@@ -58,7 +60,7 @@ pub async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnectio
     match response {
         Ok(response) => {
             for column in response {
-                if column.password == user_input.password && column.username == user_input.name{
+                if column.password == user_input.password && column.username == user_input.name && user_input.mfa_pin == column.fa_pin {
 
                     let _response = User::find_by_statement(Statement::from_sql_and_values(
                         DbBackend::Sqlite,
@@ -68,7 +70,7 @@ pub async fn api_login(user_input: Form<LoginForm>, db: &State<DatabaseConnectio
                     return Ok(Redirect::to(format!("/?user_id={}", column.id)))
                 }
                 else {
-                    return Err(format!("Incorrect password for user {}", column.username))
+                    return Err(format!("Incorrect password or PIN for user {}", column.username))
                 }
             }
             return Err(format!("User {} not found", user_input.name))
@@ -226,7 +228,7 @@ pub async fn api_register(user_input: Form<UserForm>, db: &State<DatabaseConnect
     if user_input.password == user_input.password_again {
         let response = User::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Sqlite,
-            &format!("INSERT INTO \"user\" (username, full_name, email, password, logged_in) VALUES ('{}', '{}', '{}', '{}', 0)", user_input.name,user_input.full_name,user_input.email,user_input.password),
+            &format!("INSERT INTO \"user\" (username, full_name, email, password, logged_in, fa_pin) VALUES ('{}', '{}', '{}', '{}', 0, '{}')", user_input.name,user_input.full_name,user_input.email,user_input.password, user_input.password_2fa),
             [],
         )).all(db.inner()).await;
         println!("{:?}", response);

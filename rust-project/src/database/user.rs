@@ -12,6 +12,7 @@ pub struct Model {
     pub email: String,
     pub password: String,
     pub logged_in: i32,
+    pub fa_pin: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

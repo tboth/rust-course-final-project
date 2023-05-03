@@ -8,6 +8,8 @@
       <input type="text" name="name" id="name" placeholder="Name" class="text-black" />
       <label>Password:</label>
       <input type="password" name="password" id="password" placeholder="Password" class="text-black" />
+      <label>2FA password:</label>
+      <input type="password" name="mfa_pin" id="mfa_pin" placeholder="2FA pin" class="text-black" />
       <input type="submit" value="Login" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
     </form>
     <p class="mt-5">Do not have accound yet?</p>

@@ -14,6 +14,8 @@
       <input type="password" name="password" id="" placeholder="Password" class="text-black" />
       <label>Password again:</label>
       <input type="password" name="password_again" id="" placeholder="Password again" class="text-black" />
+      <label>PIN for 2FA:</label>
+      <input type="password" name="password_2fa" id="" placeholder="PIN for 2FA" class="text-black" />
       <input type="submit" value="Register" class="mt-2 w-28 rounded-md bg-white py-1 text-black" />
     </form>
     <p class="mt-5">Have an accound yet?</p>
